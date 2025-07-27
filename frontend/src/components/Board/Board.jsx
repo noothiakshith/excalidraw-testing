@@ -17,9 +17,11 @@ function Board({ id }) {
     const {
         elements,
         toolActionType,
+        activeToolItem,
         boardHandleDown,
         boardHandleMove,
         boardhandleup,
+        eraseatapoint,
         setCanvasId,
         setElements,
         setHistory,
@@ -170,9 +172,21 @@ function Board({ id }) {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        const activeTool = useBoardStore.getState().activeToolItem;
-        const toolProps = toolboxstate[activeTool];
-        boardHandleDown(x, y, toolProps?.fill, toolProps?.stroke, toolProps?.size);
+        if (activeToolItem === TOOL_ITEMS.ERASER) {
+            console.log('Erasing at point:', { x, y });
+            const elementsBefore = useBoardStore.getState().elements.length;
+            eraseatapoint({ clientx: x, clienty: y });
+            const elementsAfter = useBoardStore.getState().elements.length;
+
+            console.log(`Elements before: ${elementsBefore}, after: ${elementsAfter}`);
+
+            // Emit erasing update immediately
+            const currentElements = useBoardStore.getState().elements;
+            socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
+        } else {
+            const toolProps = toolboxstate[activeToolItem];
+            boardHandleDown(x, y, toolProps?.fill, toolProps?.stroke, toolProps?.size);
+        }
     };
 
     const handleMouseMove = (e) => {
@@ -183,14 +197,33 @@ function Board({ id }) {
         const x = e.clientX - rect.left;
         const y = e.clientY - rect.top;
 
-        boardHandleMove({ clientX: x, clientY: y });
+        if (activeToolItem === TOOL_ITEMS.ERASER) {
+            // Continue erasing while dragging
+            const elementsBefore = useBoardStore.getState().elements.length;
+            eraseatapoint({ clientx: x, clienty: y });
+            const elementsAfter = useBoardStore.getState().elements.length;
 
+            if (elementsBefore !== elementsAfter) {
+                console.log(`Erased element at move - Elements: ${elementsBefore} → ${elementsAfter}`);
+            }
 
-        const now = Date.now();
-        if (toolActionType === TOOL_ACTION_TYPES.DRAWING && now - lastEmitTime.current > 50) {
-            const currentElements = useBoardStore.getState().elements;
-            socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
-            lastEmitTime.current = now;
+            // Throttle erasing updates to improve performance
+            const now = Date.now();
+            if (now - lastEmitTime.current > 50) {
+                const currentElements = useBoardStore.getState().elements;
+                socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
+                lastEmitTime.current = now;
+            }
+        } else {
+            boardHandleMove({ clientX: x, clientY: y });
+
+            // Throttle real-time updates to improve performance
+            const now = Date.now();
+            if (toolActionType === TOOL_ACTION_TYPES.DRAWING && now - lastEmitTime.current > 50) {
+                const currentElements = useBoardStore.getState().elements;
+                socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
+                lastEmitTime.current = now;
+            }
         }
     };
 
@@ -200,12 +233,21 @@ function Board({ id }) {
         console.log('Mouse up - drawing stopped');
 
         if (toolActionType !== TOOL_ACTION_TYPES.NONE) {
-            boardhandleup();
+            if (activeToolItem === TOOL_ITEMS.ERASER) {
+                // For eraser, just emit final update without calling boardhandleup
+                const currentElements = useBoardStore.getState().elements;
+                socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
 
-            // Get the latest elements from the store after the update
-            const currentElements = useBoardStore.getState().elements;
-            console.log('Emitting drawing update:', { canvasid: id, elements: currentElements });
-            socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
+                // Reset tool action type for eraser
+                useBoardStore.setState({ toolActionType: TOOL_ACTION_TYPES.NONE });
+            } else {
+                boardhandleup();
+
+                // Get the latest elements from the store after the update
+                const currentElements = useBoardStore.getState().elements;
+                console.log('Emitting drawing update:', { canvasid: id, elements: currentElements });
+                socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
+            }
         }
     };
 
@@ -239,6 +281,9 @@ function Board({ id }) {
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
                 className="fixed top-0 left-0 w-full h-full z-0 bg-white"
+                style={{
+                    cursor: activeToolItem === TOOL_ITEMS.ERASER ? 'crosshair' : 'default'
+                }}
             />
         </>
     );
