@@ -1,40 +1,39 @@
-import React from 'react';
+import React from "react";
 import {
-  COLORS,
-  FILL_TOOL_TYPES,
-  SIZE_TOOL_TYPES,
-  STROKE_TOOL_TYPES,
-  TOOL_ITEMS,
-} from '../../../constants';
-import { useBoardStore } from '../../store/useboardstore';
-import { usetoolstore } from '../../store/usetoolstore';
+  COLORS, FILL_TOOL_TYPES, SIZE_TOOL_TYPES,
+  STROKE_TOOL_TYPES, TOOL_ITEMS
+} from "../../../constants";
+import { useBoardStore } from "../../store/useboardstore";
+import { usetoolstore } from "../../store/usetoolstore";
 
-function ToolBox() {
+const Toolbox = () => {
   const { activeToolItem } = useBoardStore();
   const { toolboxstate, changestroke, changefill, changesize } = usetoolstore();
 
-  const strokeColor = toolboxstate[activeToolItem]?.stroke;
-  const fillColor = toolboxstate[activeToolItem]?.fill;
+  const stroke = toolboxstate[activeToolItem]?.stroke;
+  const fill = toolboxstate[activeToolItem]?.fill;
   const size = toolboxstate[activeToolItem]?.size;
 
   return (
-    <div style={{ padding: 8 }}>
+    <div className="fixed top-24 left-4 bg-white rounded-xl p-4 shadow-md border border-gray-300 w-60 z-40">
       {STROKE_TOOL_TYPES.includes(activeToolItem) && (
-        <div>
-          <div>Stroke Colors:</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-            {Object.keys(COLORS).map((key) => (
+        <div className="mb-4">
+          <div className="font-medium text-sm mb-2">Stroke Color</div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <input
+              type="color"
+              value={stroke}
+              onChange={(e) => changestroke(activeToolItem, e.target.value)}
+              className="w-8 h-8 border rounded cursor-pointer"
+            />
+            {Object.values(COLORS).map((c) => (
               <div
-                key={key}
-                onClick={() => changestroke(activeToolItem, COLORS[key])}
-                style={{
-                  width: 24,
-                  height: 24,
-                  backgroundColor: COLORS[key],
-                  border: strokeColor === COLORS[key] ? '3px solid black' : '1px solid #ccc',
-                  cursor: 'pointer',
-                }}
-                title={key}
+                key={c}
+                onClick={() => changestroke(activeToolItem, c)}
+                style={{ backgroundColor: c }}
+                className={`w-6 h-6 rounded-full cursor-pointer border-2 ${
+                  stroke === c ? "border-black" : "border-transparent"
+                }`}
               />
             ))}
           </div>
@@ -42,56 +41,47 @@ function ToolBox() {
       )}
 
       {FILL_TOOL_TYPES.includes(activeToolItem) && (
-        <div style={{ marginTop: 16 }}>
-          <div>Fill Colors:</div>
-          <div style={{ display: 'flex', gap: 8, marginTop: 4, alignItems: 'center' }}>
+        <div className="mb-4">
+          <div className="font-medium text-sm mb-2">Fill Color</div>
+          <div className="flex flex-wrap gap-2 items-center">
             <div
               onClick={() => changefill(activeToolItem, null)}
-              style={{
-                width: 24,
-                height: 24,
-                border: fillColor === null ? '3px solid black' : '1px solid #ccc',
-                background:
-                  'repeating-conic-gradient(#999 0% 25%, transparent 0% 50%) 50% / 10px 10px',
-                cursor: 'pointer',
-              }}
-              title="No Fill"
+              className={`w-6 h-6 rounded-full border-2 border-dashed cursor-pointer ${
+                fill === null ? "border-black" : "border-gray-400"
+              }`}
             />
-            {Object.keys(COLORS).map((key) => (
+            {Object.values(COLORS).map((c) => (
               <div
-                key={key}
-                onClick={() => changefill(activeToolItem, COLORS[key])}
-                style={{
-                  width: 24,
-                  height: 24,
-                  backgroundColor: COLORS[key],
-                  border: fillColor === COLORS[key] ? '3px solid black' : '1px solid #ccc',
-                  cursor: 'pointer',
-                }}
-                title={key}
+                key={c}
+                onClick={() => changefill(activeToolItem, c)}
+                style={{ backgroundColor: c }}
+                className={`w-6 h-6 rounded-full cursor-pointer border-2 ${
+                  fill === c ? "border-black" : "border-transparent"
+                }`}
               />
             ))}
           </div>
         </div>
       )}
 
-
       {SIZE_TOOL_TYPES.includes(activeToolItem) && (
-        <div style={{ marginTop: 16 }}>
-          <div>{activeToolItem === TOOL_ITEMS.TEXT ? 'Font Size:' : 'Brush Size:'}</div>
+        <div>
+          <div className="font-medium text-sm mb-2">
+            {activeToolItem === TOOL_ITEMS.TEXT ? "Font Size" : "Brush Size"}
+          </div>
           <input
             type="range"
             min={activeToolItem === TOOL_ITEMS.TEXT ? 12 : 1}
             max={activeToolItem === TOOL_ITEMS.TEXT ? 64 : 10}
             step={1}
             value={size}
-            onChange={(e) => changesize(activeToolItem, Number(e.target.value))}
-            style={{ width: '100%', marginTop: 8 }}
+            onChange={(e) => changesize(activeToolItem, +e.target.value)}
+            className="w-full"
           />
         </div>
       )}
     </div>
   );
-}
+};
 
-export default ToolBox;
+export default Toolbox;

@@ -1,81 +1,67 @@
 import React from "react";
 import {
-  FaSlash,
-  FaRegCircle,
-  FaArrowRight,
-  FaPaintBrush,
-  FaEraser,
-  FaUndoAlt,
-  FaRedoAlt,
-  FaFont,
-  FaDownload,
-  FaSquareFull,
+  FaSlash, FaRegCircle, FaArrowRight, FaPaintBrush,
+  FaEraser, FaUndoAlt, FaRedoAlt, FaFont, FaDownload,
 } from "react-icons/fa";
+import { LuRectangleHorizontal } from "react-icons/lu";
 import { TOOL_ITEMS } from "../../../constants";
 import { useBoardStore } from "../../store/useboardstore";
 
-const tools = [
-  { id: TOOL_ITEMS.BRUSH, icon: <FaPaintBrush /> },
-  { id: TOOL_ITEMS.LINE, icon: <FaSlash /> },
-  { id: TOOL_ITEMS.RECTANGLE, icon: <FaSquareFull /> },
-  { id: TOOL_ITEMS.CIRCLE, icon: <FaRegCircle /> },
-  { id: TOOL_ITEMS.ARROW, icon: <FaArrowRight /> },
-  { id: TOOL_ITEMS.ERASER, icon: <FaEraser /> },
-  { id: TOOL_ITEMS.TEXT, icon: <FaFont /> },
-];
-
-function ToolBar() {
-  const { activeToolItem, undo, redo, changeTool } = useBoardStore();
+const Toolbar = () => {
+  const { activeToolItem, changeTool, undo, redo } = useBoardStore();
 
   const handleDownload = () => {
-    console.log("Download triggered");
+    const canvas = document.getElementById("canvas");
+    const data = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = data;
+    link.download = "board.png";
+    link.click();
   };
 
-  return (
-    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 bg-white p-2 rounded-lg shadow-md flex items-center gap-4">
-      {/* Tool Buttons */}
-      <div className="flex gap-2">
-        {tools.map((tool) => (
-          <button
-            key={tool.id}
-            onClick={() => changeTool(tool.id)}
-            className={`p-2 rounded cursor-pointer text-lg ${
-              activeToolItem === tool.id
-                ? "border-2 border-black bg-gray-200"
-                : "border border-gray-300 bg-white"
-            }`}
-          >
-            {tool.icon}
-          </button>
-        ))}
-      </div>
+  const toolButtons = [
+    { tool: TOOL_ITEMS.BRUSH, icon: <FaPaintBrush /> },
+    { tool: TOOL_ITEMS.LINE, icon: <FaSlash /> },
+    { tool: TOOL_ITEMS.RECTANGLE, icon: <LuRectangleHorizontal /> },
+    { tool: TOOL_ITEMS.CIRCLE, icon: <FaRegCircle /> },
+    { tool: TOOL_ITEMS.ARROW, icon: <FaArrowRight /> },
+    { tool: TOOL_ITEMS.ERASER, icon: <FaEraser /> },
+    { tool: TOOL_ITEMS.TEXT, icon: <FaFont /> },
+  ];
 
-      {/* Undo / Redo / Download */}
-      <div className="flex gap-2 ml-auto">
+  return (
+    <div className="fixed top-4 left-1/2 -translate-x-1/2 flex gap-2 bg-white border border-gray-300 rounded-2xl p-2 shadow-md z-50">
+      {toolButtons.map(({ tool, icon }) => (
         <button
-          onClick={undo}
-          className="p-2 border border-gray-300 rounded cursor-pointer"
-          title="Undo"
+          key={tool}
+          onClick={() => changeTool(tool)}
+          className={`w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition ${
+            activeToolItem === tool ? "bg-gray-200 border border-gray-400" : ""
+          }`}
         >
-          <FaUndoAlt />
+          {icon}
         </button>
-        <button
-          onClick={redo}
-          className="p-2 border border-gray-300 rounded cursor-pointer"
-          title="Redo"
-        >
-          <FaRedoAlt />
-        </button>
-        <button
-          onClick={handleDownload}
-          className="p-2 border border-gray-300 rounded cursor-pointer"
-          title="Download"
-        >
-          <FaDownload />
-        </button>
-      </div>
+      ))}
+      <button
+        onClick={undo}
+        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition"
+      >
+        <FaUndoAlt />
+      </button>
+      <button
+        onClick={redo}
+        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition"
+      >
+        <FaRedoAlt />
+      </button>
+      <button
+        onClick={handleDownload}
+        className="w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition"
+      >
+        <FaDownload />
+      </button>
     </div>
   );
-}
+};
 
-export default ToolBar;
+export default Toolbar;
