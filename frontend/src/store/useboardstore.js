@@ -1,6 +1,6 @@
-import create from 'zustand';
+import { create } from 'zustand';
 import { TOOL_ACTION_TYPES, TOOL_ITEMS } from '../../constants';
-import { createnewlement } from '../utils/element';
+import { createnewlement, isPointNearElement } from '../utils/element';
 import { isNearPoint } from '../utils/math';
 export const useBoardStore = create((set, get) => ({
   activeToolItem: TOOL_ITEMS.BRUSH,
@@ -23,6 +23,13 @@ export const useBoardStore = create((set, get) => ({
 
   boardHandleDown: (clientX, clientY, fill, stroke, size) => {
     const { activeToolItem, elements } = get();
+
+    if (activeToolItem === TOOL_ITEMS.ERASER) {
+      set({ toolActionType: TOOL_ACTION_TYPES.ERASING });
+      return;
+    }
+
+    const id = elements.length;
     const newElement = createnewlement(
       id,
       clientX,
@@ -37,28 +44,72 @@ export const useBoardStore = create((set, get) => ({
       toolActionType:
         activeToolItem === TOOL_ITEMS.BRUSH
           ? TOOL_ACTION_TYPES.DRAWING
-          : TOOL_ACTION_TYPES.WRITING,
+          : activeToolItem === TOOL_ITEMS.TEXT
+            ? TOOL_ACTION_TYPES.WRITING
+            : TOOL_ACTION_TYPES.DRAWING,
     });
   },
-  boardhandleup:()=>{
-    const { history, index, elements, toolActionType } = get();
-    if(toolActionType===TOOL_ACTION_TYPES.WRITING) return
-    const newhistory = [...history.slice(0,index+1),elements]
-    set({
-        history:newhistory,
-        index:index+1,
-        toolActionType:TOOL_ACTION_TYPES.NONE
-    })
+  boardHandleMove: ({ clientX, clientY }) => {
+    const { elements, activeToolItem } = get();
+    const newElements = [...elements];
+    const index = elements.length - 1;
+    const element = newElements[index];
+    if (!element) return;
+
+    switch (element.type) {
+      case TOOL_ITEMS.LINE:
+      case TOOL_ITEMS.RECTANGLE:
+      case TOOL_ITEMS.CIRCLE:
+      case TOOL_ITEMS.ARROW: {
+        const { id, x1, y1, stroke, fill, size } = element;
+        const newElement = createnewlement(id, x1, y1, clientX, clientY, {
+          type: activeToolItem,
+          stroke,
+          fill,
+          size,
+        });
+        newElements[index] = newElement;
+        break;
+      }
+      case TOOL_ITEMS.BRUSH: {
+        newElements[index].points = [
+          ...newElements[index].points,
+          { x: clientX, y: clientY },
+        ];
+        break;
+      }
+      default:
+        throw new Error("Type not recognized");
+    }
+
+    set({ elements: newElements });
   },
-  eraseatapoint:({clientx,clienty})=>{
-    const{history,elements,index,toolActionType} = get()
-    const newElements = elements.filter((el)=>!isNearPoint(el,clientx,clienty))
-    const newhistory = [...history.slice(0,index+1),newElements]
+  boardhandleup: () => {
+    const { history, index, elements, toolActionType } = get();
+    if (toolActionType === TOOL_ACTION_TYPES.WRITING) return;
+
+    const newhistory = [...history.slice(0, index + 1), elements];
     set({
-        elements:newElements,
-        history:newhistory,
-        index:index+1
-    })
+      history: newhistory,
+      index: index + 1,
+      toolActionType: TOOL_ACTION_TYPES.NONE
+    });
+  },
+  eraseatapoint: ({ clientx, clienty }) => {
+    const { history, elements, index } = get();
+    const newElements = elements.filter((el) => {
+      return !isPointNearElement(el, clientx, clienty);
+    });
+
+    if (newElements.length !== elements.length) {
+      const newhistory = [...history.slice(0, index + 1), newElements];
+      set({
+        elements: newElements,
+        history: newhistory,
+        index: index + 1,
+        toolActionType: TOOL_ACTION_TYPES.ERASING
+      });
+    }
   },
   changeText: (text) => {
     const { elements, history, index } = get();
@@ -73,18 +124,18 @@ export const useBoardStore = create((set, get) => ({
       toolActionType: TOOL_ACTION_TYPES.NONE,
     });
   },
-  undo:()=>{
-    const{history,index} = get()
+  undo: () => {
+    const { history, index } = get()
     set({
-        elements:history[index-1],
-        index:index-1
+      elements: history[index - 1],
+      index: index - 1
     })
   },
-  redo:()=>{
-    const{history,index} = get()
+  redo: () => {
+    const { history, index } = get()
     set({
-        elements:history[index+1],
-        index:index+1
+      elements: history[index + 1],
+      index: index + 1
     })
   }
 }));

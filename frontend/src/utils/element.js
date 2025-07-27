@@ -1,6 +1,6 @@
 import { ARROW_LENGTH, TOOL_ITEMS } from "../../constants";
 import getStroke from "perfect-freehand";
-import rough from "roughjs/bin/rough";
+import rough from 'roughjs';
 import { getArrowHeadsCoordinates, isPointCloseToLine } from "./math";
 
 const gen = rough.generator();
@@ -58,6 +58,8 @@ export const createnewlement = (id, x1, y1, x2, y2, { type, stroke, fill, size }
 
     case TOOL_ITEMS.TEXT:
       element.text = "";
+      element.width = 200; // Default width for text box
+      element.height = size || 16; // Height based on font size
       return element;
 
     default:
@@ -88,17 +90,25 @@ export const isPointNearElement = (element, pointX, pointY) => {
       return context.isPointInPath(elPath, pointX, pointY);
 
     case TOOL_ITEMS.TEXT:
+      if (!element.text || element.text.trim() === '') return false;
+      
       context.save();
-      context.font = `${element.size}px Caveat`;
-      context.fillStyle = element.stroke;
-      const textWidth = context.measureText(element.text).width;
-      const textHeight = parseInt(element.size);
+      context.font = `${element.size || 16}px Arial, sans-serif`;
+      
+      // Calculate text bounds
+      const lines = element.text.split('\n');
+      const lineHeight = (element.size || 16) * 1.2;
+      const maxWidth = Math.max(...lines.map(line => context.measureText(line).width));
+      const totalHeight = lines.length * lineHeight;
+      
       context.restore();
+      
+      // Check if point is within text bounds
       return (
-        isPointCloseToLine(x1, y1, x1 + textWidth, y1, pointX, pointY) ||
-        isPointCloseToLine(x1 + textWidth, y1, x1 + textWidth, y1 + textHeight, pointX, pointY) ||
-        isPointCloseToLine(x1 + textWidth, y1 + textHeight, x1, y1 + textHeight, pointX, pointY) ||
-        isPointCloseToLine(x1, y1 + textHeight, x1, y1, pointX, pointY)
+        pointX >= x1 && 
+        pointX <= x1 + maxWidth && 
+        pointY >= y1 && 
+        pointY <= y1 + totalHeight
       );
 
     default:
