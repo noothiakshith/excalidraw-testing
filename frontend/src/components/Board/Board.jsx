@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import rough from "roughjs";
 import { TOOL_ACTION_TYPES, TOOL_ITEMS } from "../../../constants";
 import socket from "../../utils/socket";
-import axios from "axios";
+import api from "../../utils/api";
 import { getSvgPathFromStroke } from "../../utils/element";
 import getStroke from "perfect-freehand";
 import { useBoardStore } from "../../store/useboardstore";
@@ -35,7 +35,7 @@ function Board({ id }) {
     const [isAuthorized, setIsAuthorized] = useState(true);
     const [isConnected, setIsConnected] = useState(false);
 
-    const token = localStorage.getItem("whiteboard_user_token");
+    const token = localStorage.getItem("token");
 
     useEffect(() => {
         // Monitor connection status
@@ -85,14 +85,7 @@ function Board({ id }) {
         const fetchCanvasData = async () => {
             if (id && token) {
                 try {
-                    const response = await axios.get(
-                        `/api/canvas/${id}`,
-                        {
-                            headers: {
-                                Authorization: `Bearer ${token}`
-                            }
-                        }
-                    );
+                    const response = await api.get(`/api/canvas/${id}`);
                     setCanvasId(id);
                     setElements(response.data.canvas.elements);
                     setHistory(response.data.canvas.elements);
@@ -234,11 +227,8 @@ function Board({ id }) {
 
         if (toolActionType !== TOOL_ACTION_TYPES.NONE) {
             if (activeToolItem === TOOL_ITEMS.ERASER) {
-                // For eraser, just emit final update without calling boardhandleup
                 const currentElements = useBoardStore.getState().elements;
-                socket.emit("drawingupdate", { canvasid: id, elements: currentElements });
-
-                // Reset tool action type for eraser
+                socket.emit("drawingupdate", { canvasid: id, elements: currentElements })
                 useBoardStore.setState({ toolActionType: TOOL_ACTION_TYPES.NONE });
             } else {
                 boardhandleup();
