@@ -1,10 +1,12 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
+import { FaArrowLeft } from "react-icons/fa";
 import ToolBar from "./Toolbar/ToolBar";
 import ToolBox from "./Toolbox/ToolBox";
 import Board from "./Board/Board";
 export default function HomePage() {
   const { id } = useParams();
+  const navigate = useNavigate();
   if (!id) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -23,8 +25,18 @@ export default function HomePage() {
       {/* Main Content */}
       <div className="flex flex-col flex-1">
         {/* Toolbar */}
-        <div className="h-14 bg-white border-b shadow-sm">
-          <ToolBar />
+        <div className="h-14 bg-white border-b shadow-sm flex items-center">
+          <button
+            onClick={() => navigate('/')}
+            className="ml-4 p-2 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors flex items-center gap-2"
+            title="Back to Dashboard"
+          >
+            <FaArrowLeft className="w-4 h-4" />
+            <span className="text-sm font-medium">Dashboard</span>
+          </button>
+          <div className="flex-1">
+            <ToolBar />
+          </div>
         </div>
 
         {/* Board and Toolbox */}
